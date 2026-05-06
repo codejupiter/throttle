@@ -1,4 +1,46 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
+
+// Animated counter component for hero stats
+const AnimatedStat = ({ value, label }) => {
+  const [display, setDisplay] = useState(value);
+  const ref = useRef(null);
+  const hasAnimated = useRef(false);
+
+  useEffect(() => {
+    if (hasAnimated.current) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && !hasAnimated.current) {
+        hasAnimated.current = true;
+        // Parse numeric portion (e.g. "350+" -> 350, "4.9★" -> 4.9, "60s" -> 60, "10yr" -> 10)
+        const match = value.match(/[\d.]+/);
+        if (!match) return;
+        const target = parseFloat(match[0]);
+        const suffix = value.replace(match[0], "");
+        const isDecimal = match[0].includes(".");
+        let current = 0;
+        const steps = 40;
+        const stepValue = target / steps;
+        let step = 0;
+        const interval = setInterval(() => {
+          step++;
+          current = Math.min(stepValue * step, target);
+          const formatted = isDecimal ? current.toFixed(1) : Math.floor(current).toString();
+          setDisplay(formatted + suffix);
+          if (step >= steps) clearInterval(interval);
+        }, 25);
+      }
+    }, { threshold: 0.3 });
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [value]);
+
+  return (
+    <div ref={ref}>
+      <div className="font-display text-5xl text-emerald-400 leading-none drop-shadow-[0_0_20px_rgba(74,222,196,0.4)]">{display}</div>
+      <div className="font-mono text-[11px] uppercase tracking-wider text-zinc-500 mt-2">{label}</div>
+    </div>
+  );
+};
 import { Search, ArrowRight, Phone, MessageCircle, Zap, MapPin, Check, Shield, Clock, ChevronRight } from "lucide-react";
 
 const Sportbike = ({ className = "" }) => (
@@ -217,7 +259,6 @@ export default function Throttle() {
             <nav className="hidden md:flex items-center gap-7 text-sm">
               <a className="hover:text-emerald-400 transition" href="#inventory">Inventory</a>
               <a className="hover:text-emerald-400 transition" href="#financing">Financing</a>
-              <a className="hover:text-emerald-400 transition" href="#service">Service</a>
               <a className="hover:text-emerald-400 transition" href="#about">About</a>
               <button onClick={() => setLeadOpen(true)} className="px-4 py-2 bg-emerald-400 text-black font-semibold rounded-md hover:bg-emerald-300 transition shadow-lg shadow-emerald-400/30">
                 Get Pre-Approved
@@ -259,10 +300,7 @@ export default function Throttle() {
                 { num: "4.9★", label: "1,200+ Google reviews" },
                 { num: "10yr", label: "Tucson's home dealer" }
               ].map((s, i) => (
-                <div key={i}>
-                  <div className="font-display text-5xl text-emerald-400 leading-none drop-shadow-[0_0_20px_rgba(74,222,196,0.4)]">{s.num}</div>
-                  <div className="font-mono text-[11px] uppercase tracking-wider text-zinc-500 mt-2">{s.label}</div>
-                </div>
+                <AnimatedStat key={i} value={s.num} label={s.label} />
               ))}
             </div>
           </div>
@@ -408,6 +446,42 @@ export default function Throttle() {
           </div>
         </section>
 
+        {/* Service Department */}
+        <section id="service" className="border-t border-zinc-900 bg-gradient-to-b from-[#0a0e0d] to-zinc-950/40">
+          <div className="max-w-7xl mx-auto px-6 py-20">
+            <div className="grid md:grid-cols-3 gap-8 items-start">
+              <div className="md:col-span-1">
+                <div className="font-mono text-xs uppercase tracking-widest text-emerald-400 mb-2">Service Department</div>
+                <h2 className="font-display text-6xl mb-4 leading-none">KEEP IT<br/><span className="text-emerald-400">RIPPING.</span></h2>
+                <p className="text-zinc-400 leading-relaxed">
+                  Factory-trained techs. OEM parts. Online scheduling.
+                  Most service jobs out the door same day or next.
+                </p>
+              </div>
+              <div className="md:col-span-2 grid sm:grid-cols-2 gap-3">
+                {[
+                  { title: "Routine Service", body: "Oil changes, valve adjustments, belt service, tune-ups." },
+                  { title: "Tire & Wheel", body: "Mount, balance, alignment. We stock most popular sizes." },
+                  { title: "Performance Mods", body: "Exhausts, intake, suspension, ECU tunes — installed and dyno-tested." },
+                  { title: "Winterization", body: "Storage prep for watercraft, UTVs, and ATVs. Pickup available." },
+                ].map((s, i) => (
+                  <div key={i} className="p-5 border border-zinc-800 rounded-lg hover:border-emerald-400/40 transition bg-zinc-950/40">
+                    <div className="font-display text-2xl mb-2">{s.title}</div>
+                    <div className="text-sm text-zinc-400 leading-relaxed">{s.body}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="mt-10 pt-8 border-t border-zinc-900 flex flex-wrap items-center justify-between gap-4">
+              <div className="font-mono text-xs uppercase tracking-widest text-zinc-500">Service hotline · 7am - 6pm Mon-Sat</div>
+              <a href="tel:5205557433" className="inline-flex items-center gap-2 text-emerald-400 hover:text-emerald-300 font-display text-2xl">
+                <Phone className="w-5 h-5"/> (520) 555-RIDE
+              </a>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA */}
         <section id="about" className="border-t border-zinc-900">
           <div className="max-w-7xl mx-auto px-6 py-20">
             <div className="bg-emerald-400 text-black rounded-2xl p-10 md:p-16 relative overflow-hidden shadow-2xl shadow-emerald-400/20">
@@ -425,8 +499,8 @@ export default function Throttle() {
                   <button onClick={() => setLeadOpen(true)} className="inline-flex items-center gap-2 bg-black text-emerald-400 px-6 py-3 font-display text-xl rounded-md hover:bg-zinc-900 transition">
                     GET PRE-APPROVED <ArrowRight className="w-5 h-5"/>
                   </button>
-                  <a href="tel:5205550100" className="inline-flex items-center gap-2 border-2 border-black px-6 py-3 font-display text-xl rounded-md hover:bg-black hover:text-emerald-400 transition">
-                    <Phone className="w-5 h-5"/> (520) 555-0100
+                  <a href="tel:5205557433" className="inline-flex items-center gap-2 border-2 border-black px-6 py-3 font-display text-xl rounded-md hover:bg-black hover:text-emerald-400 transition">
+                    <Phone className="w-5 h-5"/> (520) 555-RIDE
                   </a>
                 </div>
               </div>
@@ -526,9 +600,9 @@ export default function Throttle() {
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setLeadOpen(false)}>
           <div className="bg-[#0a0e0d] border border-emerald-400/40 rounded-2xl max-w-md w-full shadow-2xl shadow-emerald-400/20" onClick={e => e.stopPropagation()}>
             <div className="p-8">
-              <div className="font-mono text-[10px] uppercase tracking-widest text-emerald-400 mb-1">Step 1 of 3</div>
+              <div className="font-mono text-[10px] uppercase tracking-widest text-emerald-400 mb-1">Pre-Qualification</div>
               <h2 className="font-display text-4xl mb-2">GET PRE-APPROVED</h2>
-              <p className="text-sm text-zinc-400 mb-6">Soft credit pull — won't impact your score.</p>
+              <p className="text-sm text-zinc-400 mb-6">Soft credit pull — won't impact your score. Takes about 60 seconds.</p>
 
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
@@ -547,7 +621,7 @@ export default function Throttle() {
                 </select>
 
                 <button onClick={() => setLeadOpen(false)} className="w-full bg-emerald-400 hover:bg-emerald-300 text-black py-3.5 font-display text-xl rounded-md transition mt-2 shadow-lg shadow-emerald-400/30">
-                  CONTINUE → CREDIT INFO
+                  SUBMIT APPLICATION
                 </button>
                 <button onClick={() => setLeadOpen(false)} className="w-full text-zinc-500 text-xs hover:text-zinc-300 transition">Cancel</button>
               </div>
